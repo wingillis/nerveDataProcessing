@@ -21,15 +21,20 @@ load(strcat(rs, '_MANUALCLUST/extracted_data.mat'));
 % this fw_analysis goes 
 
 % use agg_data, which contains the voltage traces, to then average out the basic filter
+temp = ag_data.data(:,:,1).^2;
+
+
 
 cd('../sleep');
 
 files = dir('sleepdata1*.mat');
 
 for i=1:length(files)
-	clear adc audio aux digin digout ephys file_datenum filestatus notes original_filename parameters playback ttl
-	load(files(i).name);
+	clear ephys
+	load(files(i).name, 'ephys');
+	data = bandpassFiltData(ephys.data(:,1)-ephys.data(:,2), [300 3e3]/(ephys.fs/2), 4);
 
+end
 
 % search through all the sleep data files 
 
