@@ -11,7 +11,7 @@ skipfiles = 10; % how many files to initially skip
 downsampleFactor = 10;
 
 % detection threshold for sleep data
-templatePercentage = 0.6; % percentage of matching
+templatePercentage = 0.96; % percentage of matching
 
 audio_load=@(FILE) fw_audioload(FILE);
 data_load=@(FILE) fw_lg373_dataload(FILE);
@@ -29,7 +29,7 @@ load(strcat(rs, '_MANUALCLUST/extracted_data.mat'));
 % use agg_data, which contains the voltage traces, to then average out the basic filter
 
 % this is now a 1xN vector
-subtractedMean = squareAndDetrend(agg_data.data(:,:));
+subtractedMean = squareAndDetrend(agg_data.data(:,:))';
 
 % smooth the data (run an fir filter through the data as a moving average)
 
@@ -66,7 +66,7 @@ for i=1:length(files)
 
 	%downsample data to match the song
 	windowLength2 = 5*ephys.fs/100; % window length of 50ms
-	smoothedData = smoothData(data, windowLength2)
+	smoothedData = smoothData(data, windowLength2);
 	smoothedData = downsample(smoothedData, downsampleFactor);
 	downsampledT = downsample(ephys.t, downsampleFactor);
 
@@ -74,10 +74,14 @@ for i=1:length(files)
 	filteredSleep = filter(templateMatch, 1, smoothedData);
 
 	indices = findPotentialMatches(filteredSleep, templateMatch, templatePercentage);
+	
+	if(length(indices)>0)
 
-	plotAndSaveDataSmall(indices, smoothedSongData, filteredSleep, smoothedData, downsampledT, files(i).name);
+		plotAndSaveDataSmall(indices, smoothedSongData, filteredSleep, smoothedData, downsampledT, files(i).name);
 
-	plotAndSaveDataCumulative(indices, smoothedSongData, filteredSleep, smoothedData, downsampledT, files(i).name);
+
+		plotAndSaveDataCumulative(indices, smoothedSongData, filteredSleep, smoothedData, downsampledT, files(i).name);
+	end
 
 end
 

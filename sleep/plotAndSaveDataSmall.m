@@ -1,26 +1,52 @@
 function plotAndSaveDataSmall(matches, songData, filteredSleep, sleep, time, fileAssoc)
 	
 	templateLength = length(songData);
-	for i=1:length(matches) 
-		index = matches(i) - templateLength + 1;
+	
+	% filter data to only show the matches
+	n = 1:length(filteredSleep);
+	tt = time(matches);
+	ff = filteredSleep(matches);
+	[pks, locs] = findpeaks(double(ff));
 
-		f = figure();
-		sh(1) = subplot(3,1,1);
-		title('Squared and smoothed song trace');
-		plot(time(index:matches(i)), songData);
+	% use locs in tt, find time, find index in time, use that index
+	% in the sleep data
 
-		sh(2) = subplot(3,1,2);
-		title('Potential match');
-		plot(time(index:matches(i)), sleep(index:matches(i)));
+	
+	for i=1:length(locs)
+		ind1 = tt(locs(i));
+		k = find(time==ind1,1);
+		index = k-(templateLength-1):k;
 
-		sh(3) = subplot(3,1,3);
-		title('The filtered sleep data');
-		plot(time(index:matches(i)), filteredSleep(index:matches(i)), 'k', time(matches(i)), filteredSleep(matches(i)), 'g*');
+		if(index>0)
+			f = figure();
+			sh(1) = subplot(3,1,1);
+			
+			plot(time(index), songData);
 
-		st = sprintf('fig%d_%s', i, fileAssoc);
+			title('Squared and smoothed song trace');
+			axis tight;
 
-		savefig(f, strcat('figs/small/fig/', st));
-		saveas(f, strcat('figs/small/png/', st, '.png'));
+			sh(2) = subplot(3,1,2);
+			
+			plot(time(index), sleep(index));
+			title('Potential match');
+
+			sh(3) = subplot(3,1,3);
+			
+			plot(time(index), filteredSleep(index), 'k', time(k), filteredSleep(k), 'g*');
+			title('The filtered sleep data');
+			linkaxes(sh, 'x');
+
+
+			st = sprintf('fig%d_%s', i, fileAssoc);
+
+			savefig(f, strcat('figs/small/fig/', st, '.fig'));
+			saveas(f, strcat('figs/small/png/', st, '.png'), 'png');
+
+			% pause(2);
+
+			close(f);
+		end
 	end
 
 end

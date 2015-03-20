@@ -4,8 +4,9 @@ function matches=findPotentialMatches(filteredData, template, templatePercentage
 	% normalizing factor
 	u = template.'*template;
 
-	matches = n(filteredData>templatePercentage*u);
+	matches = n(filteredData>(templatePercentage*u));
 
 	strin = sprintf('Found %d matches', length(matches));
+	disp(strin);
 
 end

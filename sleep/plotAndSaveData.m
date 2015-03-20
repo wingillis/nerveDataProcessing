@@ -24,6 +24,6 @@ function plotAndSaveDataCumulative(matches, songData, filteredSleep, sleep, time
 	st = sprintf('cumulative_fig_%s', fileAssoc);
 
 	savefig(f, strcat('figs/cumulative/fig/', st));
-	saveas(f, strcat('figs/cumulative/png/', st, '.png'));
+	saveas(f, strcat('figs/cumulative/png/', st), png);
 
 end
