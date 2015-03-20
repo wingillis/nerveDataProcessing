@@ -4,4 +4,5 @@ function smoothedData=smoothData(data, windowLength)
 	a = 1;
 	% smoothed result
 	smoothedData = filter(b,a, data);
+	smoothedData = smoothedData';
 end

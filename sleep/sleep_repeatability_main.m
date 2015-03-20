@@ -46,11 +46,21 @@ templateMatch = flipud(smoothedSongData(:));
 
 cd('../../lg373_agg_sleep');
 
+mkdir('figs');
+mkdir('figs/small');
+mkdir('figs/cumulative');
+mkdir('figs/small/png');
+mkdir('figs/small/fig');
+mkdir('figs/cumulative/png');
+mkdir('figs/cumulative/fig');
+
 files = dir('sleepdata1*.mat');
 
 for i=1:length(files)
 
 	clear ephys
+	st = sprintf('Now looking in file number %d, name: %s', i, files(i).name);
+	disp(st);
 	load(files(i).name, 'ephys');
 	data = squareAndDetrend(ephys.data(:,1)-ephys.data(:,2));
 
@@ -65,7 +75,9 @@ for i=1:length(files)
 
 	indices = findPotentialMatches(filteredSleep, templateMatch, templatePercentage);
 
+	plotAndSaveDataSmall(indices, smoothedSongData, filteredSleep, smoothedData, downsampledT, files(i).name);
 
+	plotAndSaveDataCumulative(indices, smoothedSongData, filteredSleep, smoothedData, downsampledT, files(i).name);
 
 end
 
