@@ -1,7 +1,7 @@
 % map audio load and data load to anonymous functions
 
 audio_load=@(FILE) fw_audioload(FILE);
-data_load=@(FILE) fw_dataload(FILE);
+data_load=@(FILE) fw_lblk170rr_dataload(FILE);
 
 % cluster the data as per usual with new arguments
 dt = input('What is the date of these songs? ', 's');
