@@ -1,7 +1,7 @@
 % map audio load and data load to anonymous functions
 
 audio_load=@(FILE) fw_audioload(FILE);
-data_load=@(FILE) fw_lblk170rr_dataload(FILE);
+data_load=@(FILE) fw_lg373_dataload(FILE);
 
 % cluster the data as per usual with new arguments
 dt = input('What is the date of these songs? ', 's');
@@ -79,7 +79,7 @@ title(strcat('spikes ', dt));
 % if you're brave, try some spike sorting
 saveas(fig, 'figs/spikes', 'png');
 savefig(fig, 'figs/spikes');
-spikes_sorted=spikoclust_sort(double(agg_data.data(:,:)),agg_data.fs,'freq_range',[300 3e3],'spike_window',[.001 .0015],'clust_check',1:4,'sigma_t',3);
+spikes_sorted=spikoclust_sort(double(agg_data.data(:,:)),agg_data.fs,'freq_range',[300 3e3],'spike_window',[.001 .0015],'clust_check',1:4);
 
 % should only have one cluster
 

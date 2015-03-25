@@ -7,6 +7,6 @@ function matches=findPotentialMatches(filteredData, template, templatePercentage
 	matches = n(filteredData>(templatePercentage*u));
 
 	strin = sprintf('Found %d matches', length(matches));
-	disp(strin);
+	% disp(strin);
 
 end
