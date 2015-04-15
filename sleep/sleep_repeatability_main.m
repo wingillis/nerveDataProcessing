@@ -13,10 +13,9 @@
 % filter with a moving average
 % take mean and subtract
 
-skipfiles = 1; % how many files to initially skip (1 = no skipping)
+skipfiles = 3; % how many files to initially skip (1 = no skipping)
 % downsampleFactor = 10;
-phaseShifted = 0; % this variable controls if the sample is reversed
-numFiles = 400; % number of files to look through
+numFiles = 600; % number of files to look through
 
 % detection threshold for sleep data
 templatePercentage = 0.999999999999; % percentage of matching
@@ -29,7 +28,7 @@ data_load=@(FILE) fw_lg373_dataload(FILE);
 % zftftb_song_clust(pwd,'audio_load',audio_load,'data_load',data_load);
 
 % rs = input('what did you name the directory? ', 's');
-cd('/Volumes/Raid1/lg373_agg_song/songmat');
+cd('/Users/wgillis/Desktop/lg373_agg_song/songmat');
 rs = 'sleep_songs';
 
 % assumes extracted_data.mat has been loaded
@@ -46,7 +45,7 @@ for i=1:size(agg_data.data,2)
 end
 
 % window of 3ms
-windowLength = 3*agg_data.fs/1000;
+windowLength = 2*agg_data.fs/1000;
 smoothedSongData = squareAndDetrend(data(:,:), windowLength);
 
 % smooth the data (run an fir filter through the data as a moving average)
@@ -76,11 +75,14 @@ cd('../../lg373_agg_sleep');
 
 files = dir('sleepdata1*.mat');
 if(numFiles == 0)
-	numFiles = length(files)
+	numFiles = length(files);
 end
 
-scores = zeros(length(1:skipfiles:numFiles), 1);
+% scores = [];
 hits = 0;
+potentialMatchesFound = 0;
+scrambled_hits = 0;
+scrambled_matchesFound = 0;
 
 for i=1:skipfiles:numFiles
 
@@ -88,42 +90,50 @@ for i=1:skipfiles:numFiles
 	st = sprintf('Now looking in file number %d, name: %s', i, files(i).name);
 	% disp(st);
 	load(files(i).name, 'ephys');
-	data = bandpassFiltData(ephys.data(:,1) - ephys.data(:,2), [100 3e3]/(ephys.fs/2), 4);
+	data1 = bandpassFiltData(ephys.data(:,1) - ephys.data(:,2), [100 3e3]/(ephys.fs/2), 4);
 	% using a smaller window, then filter the signal
 
-	if (phaseShifted == 1)
-		data = flipud(squareAndDetrend(data, windowLength));
-	else
-		data = squareAndDetrend(data, windowLength);
-	end
+	windowed_data = window_data(data1, length(smoothedSongData), windowLength);
 
-	% downsample data to match the song
-	% windowLength2 = 1*ephys.fs/1000; % window length of 50ms
+	for i=1:size(windowed_data, 2)
 
-	% filter using the template
-	filteredSleep = filter(templateMatch, 1, data);
+		% downsample data to match the song
+		% windowLength2 = 1*ephys.fs/1000; % window length of 50ms
 
-	indices = findPotentialMatches(filteredSleep, smoothedSongData, templatePercentage);
+		% filter using the template
+		scrambled = phase_scramble(windowed_data(:,i), 2);
 
-	scores(i) = max(filteredSleep);
-	
-	if(length(indices)>0)
+		filteredSleep = filter(templateMatch, 1, windowed_data(:,i));
+		scrambledFilter = filter(templateMatch, 1, scrambled);
+		indices = findPotentialMatches(filteredSleep, smoothedSongData, templatePercentage);
+		scrambled_indices = findPotentialMatches(scrambledFilter, smoothedSongData, templatePercentage);
+		% scores(end+1) = max(filteredSleep);
+		
+		if(length(indices)>0)
 
-		% plotAndSaveDataSmall(indices, smoothedSongData, filteredSleep, data, ephys.t, files(i).name);
-		hits = hits +1;
+			% plotAndSaveDataSmall(indices, smoothedSongData, filteredSleep, data, ephys.t, files(i).name);
+			hits = hits + 1;
+			potentialMatchesFound = potentialMatchesFound + length(indices);
 
-		%plotAndSaveDataCumulative(indices, smoothedSongData, filteredSleep, smoothedData, downsampledT, files(i).name);
+			%plotAndSaveDataCumulative(indices, smoothedSongData, filteredSleep, smoothedData, downsampledT, files(i).name);
+		end
+		if(length(scrambled_indices)>0)
+			scrambled_hits = scrambled_hits + 1;
+			scrambled_matchesFound = scrambled_matchesFound + length(scrambled_indices);
+		end
 	end
 
 end
 
-figure();
+% figure();
 
-plot(scores)
-title('Scores')
-st = sprintf('Average score is: %e', mean(scores));
-xlabel(st)
+% plot(scores)
+% title('Scores')
+% st = sprintf('Average score is: %e', mean(scores));
+% xlabel(st)
 
 disp(sprintf('Number of hits: %d', hits));
-
+disp(sprintf('Total number of potential matches from matching filter: %d', potentialMatchesFound));
+disp(sprintf('Total number of scrambled hits: %d', scrambled_hits));
+disp(sprintf('Total number of scrambled potential matches of filter: %d', scrambled_matchesFound));
 % search through all the sleep data files 

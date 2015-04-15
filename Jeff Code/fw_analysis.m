@@ -1,7 +1,7 @@
 % map audio load and data load to anonymous functions
 
 audio_load=@(FILE) fw_audioload(FILE);
-data_load=@(FILE) fw_lg373_dataload(FILE);
+data_load=@(FILE) fw_lblk170rr_dataload(FILE);
 
 % cluster the data as per usual with new arguments
 dt = input('What is the date of these songs? ', 's');
@@ -18,6 +18,15 @@ load(strcat(rs, '_MANUALCLUST/extracted_data.mat'));
 [s,f,t]=zftftb_pretty_sonogram(agg_audio.data(:,4),agg_audio.fs,'filtering',300,'clipping',-5,'len',80,'overlap',79);
 
 % filter extracellular signal liberally for LFP
+c = input('Press enter to continue', 's');
+% f = figure();
+for i=1:length(agg_audio.data(1,:))
+	[s,f,t] = zftftb_pretty_sonogram(agg_audio.data(:,i), agg_audio.fs, 'filtering', 300, 'clipping', -5, 'len', 80, 'overlap', 79);
+	imagesc(s);
+	axis xy;
+	pause(0.1);
+end
+
 
 [b,a]=ellip(3,.2,40,[5 100]/(agg_data.fs/2),'bandpass');
 
@@ -79,8 +88,8 @@ title(strcat('spikes ', dt));
 % if you're brave, try some spike sorting
 saveas(fig, 'figs/spikes', 'png');
 savefig(fig, 'figs/spikes');
-spikes_sorted=spikoclust_sort(double(agg_data.data(:,:)),agg_data.fs,'freq_range',[300 3e3],'spike_window',[.001 .0015],'clust_check',1:4);
-
+[spikes_sorted, spikless]=spikoclust_sort(double(agg_data.data(:,:)),agg_data.fs,'freq_range',[300 3e3],'spike_window',[.001 .0015],'clust_check',1:4);
+spikoclust_autostats(spikes_sorted, spikless);
 % should only have one cluster
 
 fig = figure();
