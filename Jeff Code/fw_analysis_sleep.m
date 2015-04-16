@@ -79,7 +79,7 @@ files = dir('*.mat');
 
 % only work with a small subset of files to begin with
 
-files = files(1:5:48); % only 9 files
+% files = files(1:5:48); % only 9 files
 
 % use previous filter parameters
 % first, test with only one file
@@ -109,7 +109,8 @@ load(files(1).name, 'ephys');
 % subplot(3,1,3);
 % plot(filtering);
 
-filtered_data = zeros(length(ephys.data(:,1)), length(files));
+filtered_data = zeros(length(downsample(ephys.data(:,1),ephys.fs/template_fs)), length(files));
+filtered_data = filtered_data';
 
 for i=1:length(files)
 
@@ -118,7 +119,7 @@ for i=1:length(files)
 	temp_data = filtfilt(b,a, double(ephys.data(:,1) - ephys.data(:,2)));
 	sleep_threshold = 3*std(temp_data);
 	% repeat spike detection parameters as above
-	sleep_spikes = spikoclust_spike_detect(temp_data, sleep_threshold, ephys.fs, 'method', 'n', 'window', [.001 .0015]);
+	sleep_spikes = spikoclust_spike_detect(temp_data, sleep_threshold, ephys.fs, 'method', 'n', 'window', [.001 .0015], 'visualize', 'n');
 	% getting smooth spike rate (don't quite understand this yet)
 	[nsamples, ntrials] = size(temp_data);
 	spikes_pp_sleep = zeros(nsamples, ntrials);
@@ -129,22 +130,19 @@ for i=1:length(files)
 
 	spike_template=spike_template./norm(spike_template,1);
 	filtering = filter(spike_template, 1, zscore(downsample(smooth_spikes, ephys.fs/template_fs)));
-	filtered_data(:,i) = filtering;
+	filtered_data(i,:) = filtering;
 end
 
 figure();
+subplot(3,1,1);
+colormap spring;
 imagesc(filtered_data);
-
-figure();
-subplot(2,1,1);
-plot(filtered_data(:,1));
-hold on
-plot(filtered_data(:,2));
-plot(filtered_data(:,3));
-hold off
-subplot(2,1,2);
-plot(filtered_data(:.4));
-hold on
-plot(filtered_data(:,5));
-plot(filtered_data(:,6));
-hold off
+axis xy;
+subplot(3,1,2:3);
+colormap default;
+hold on;
+for j=1:size(filtered_data,1)
+	plot((filtered_data(j,:)./4)+(j-1));
+end
+ylim([-0.5 size(filtered_data,1)+1]);
+hold off;
