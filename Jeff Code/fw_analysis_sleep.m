@@ -38,17 +38,17 @@ spikes_threshold=spikoclust_spike_detect(filt_spikes,threshold,agg_data.fs,'meth
 
 % should only have one cluster
 
-figure();
-ax(1)=subplot(3,1,1);
-imagesc(t,f/1e3,s);axis xy;
-ylabel('Fs (kHz)');
+% figure();
+% ax(1)=subplot(3,1,1);
+% imagesc(t,f/1e3,s);axis xy;
+% ylabel('Fs (kHz)');
 
-ax(2)=subplot(3,1,2:3);
-spikoclust_raster(spikes_threshold.times/agg_data.fs,spikes_threshold.trial);
-axis tight;
-linkaxes(ax,'x');
-xlabel('Time (s)');
-ylabel('Trial');
+% ax(2)=subplot(3,1,2:3);
+% spikoclust_raster(spikes_threshold.times/agg_data.fs,spikes_threshold.trial);
+% axis tight;
+% linkaxes(ax,'x');
+% xlabel('Time (s)');
+% ylabel('Trial');
 
 
 [nsamples,ntrials]=size(proc_data);
@@ -68,6 +68,10 @@ spike_template=spike_template(idxs);
 spike_template=flipud(spike_template(:));
 spike_template=downsample(spike_template,agg_data.fs/template_fs);
 
+if ~exist('../filter_template.mat', 'file')
+	save('../filter_template.mat', 'spike_template');
+end
+
 lfp_template=mean(zscore(filt_lfp)');
 lfp_template=lfp_template(idxs);
 lfp_template=flipud(lfp_template(:));
@@ -76,6 +80,7 @@ lfp_template=downsample(lfp_template,agg_data.fs/template_fs);
 % open up sleep data files, filter the data, detect spikes
 
 files = dir('*.mat');
+files = files(1:20);
 
 % only work with a small subset of files to begin with
 
@@ -110,7 +115,11 @@ load(files(1).name, 'ephys');
 % plot(filtering);
 
 filtered_data = zeros(length(downsample(ephys.data(:,1),ephys.fs/template_fs)), length(files));
+spiking_data = zeros(length(ephys.data(:,1)), length(files));
+spiking_data = spiking_data';
 filtered_data = filtered_data';
+time = ephys.t - ephys.t(1);
+spike_template=spike_template./norm(spike_template,1);
 
 for i=1:length(files)
 
@@ -127,22 +136,64 @@ for i=1:length(files)
 	ind=sub2ind(size(spikes_pp_sleep),sleep_spikes.times,sleep_spikes.trial);
 	spikes_pp_sleep(ind)=1;
 	smooth_spikes=filter(spike_kernel,1,spikes_pp_sleep);
-
-	spike_template=spike_template./norm(spike_template,1);
-	filtering = filter(spike_template, 1, zscore(downsample(smooth_spikes, ephys.fs/template_fs)));
+	v = downsample(smooth_spikes, ephys.fs/template_fs);
+	spiking_data(i,:) = temp_data;
+	filtering = filter(spike_template, 1, zscore(v));
 	filtered_data(i,:) = filtering;
 end
 
-figure();
-subplot(3,1,1);
-colormap spring;
-imagesc(filtered_data);
-axis xy;
-subplot(3,1,2:3);
-colormap default;
-hold on;
-for j=1:size(filtered_data,1)
-	plot((filtered_data(j,:)./4)+(j-1));
+disp('all data read in');
+r = zeros(size(filtered_data, 1));
+
+c = zeros(size(filtered_data, 1));
+for j=1:size(filtered_data, 1)
+	te = filtered_data(j,:);
+	[r(j), c(j)] = find(te==max(te));
+	r(j) = j;
+	c(j) = c(j) * 40;
 end
-ylim([-0.5 size(filtered_data,1)+1]);
-hold off;
+% [val, index] = max(filtered_data, [], 2);
+% [r, c] = ind2sub(size(filtered_data), index);
+
+% don't just show the whole filtered trace, show the actual spiking and
+% align the smoothed kernel to the peak of the filter
+
+spike_template_length = length(spike_template);
+
+for j=1:length(files)
+	% find the index of the spiking
+	figure();
+	subplot(2,1,1);
+	plot(spike_template);
+	title('Spiking template');
+	startval = c(j) - (spike_template_length * 40);
+	if startval<0
+		startval = 1;
+	end
+	endval = c(j);
+	if startval<0
+		endval = spike_template_length*40;
+		if endval>length(spiking_data(r(j),:))
+			endval = length(spiking_data(r(j),:));
+		end
+	end
+	idex = startval:endval;
+	subplot(2,1,2);
+	plot(time(1:length(idex)), spiking_data(r(j),idex));
+	title('Filtered spiking data');
+
+end
+
+% figure();
+% subplot(3,1,1);
+% colormap spring;
+% imagesc(filtered_data);
+% axis xy;
+% subplot(3,1,2:3);
+% colormap default;
+% hold on;
+% for j=1:size(filtered_data,1)
+% 	plot(time, (filtered_data(j,:)./4)+(j-1));
+% end
+% ylim([-0.5 size(filtered_data,1)+1]);
+% hold off;
