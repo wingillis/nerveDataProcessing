@@ -1,5 +1,8 @@
 % first let's form a template...
-
+if ~exist('agg_data', 'var')
+	disp('Please load aggregate song ephys data');
+	return
+end
 % take sample spectrogram
 
 trim=[.2 .2]; % remove pads
@@ -76,50 +79,72 @@ files = dir('*.mat');
 
 % only work with a small subset of files to begin with
 
-files = files(1:5:48); % only 10 files
+files = files(1:5:48); % only 9 files
 
 % use previous filter parameters
 % first, test with only one file
 
 load(files(1).name, 'ephys');
-filtered_data = filtfilt(b,a, double(ephys.data(:,1) - ephys.data(:,2)));
-sleep_threshold = 3*std(filtered_data);
-% repeat spike detection parameters as above
-sleep_spikes = spikoclust_spike_detect(filtered_data, sleep_threshold, ephys.fs, 'method', 'n', 'window', [.001 .0015]);
-% getting smooth spike rate (don't quite understand this yet)
-[nsamples, ntrials] = size(filtered_data);
-spikes_pp_sleep = zeros(nsamples, ntrials);
-idxs=round(trim(1)*ephys.fs):round(nsamples-trim(2)*ephys.fs);
-ind=sub2ind(size(spikes_pp_sleep),sleep_spikes.times,sleep_spikes.trial);
-spikes_pp_sleep(ind)=1;
-smooth_spikes=filter(spike_kernel,1,spikes_pp_sleep);
+% filtered_data = filtfilt(b,a, double(ephys.data(:,1) - ephys.data(:,2)));
+% sleep_threshold = 3*std(filtered_data);
+% % repeat spike detection parameters as above
+% sleep_spikes = spikoclust_spike_detect(filtered_data, sleep_threshold, ephys.fs, 'method', 'n', 'window', [.001 .0015]);
+% % getting smooth spike rate (don't quite understand this yet)
+% [nsamples, ntrials] = size(filtered_data);
+% spikes_pp_sleep = zeros(nsamples, ntrials);
+% idxs=round(trim(1)*ephys.fs):round(nsamples-trim(2)*ephys.fs);
+% ind=sub2ind(size(spikes_pp_sleep),sleep_spikes.times,sleep_spikes.trial);
+% spikes_pp_sleep(ind)=1;
+% smooth_spikes=filter(spike_kernel,1,spikes_pp_sleep);
 
 
-spike_template=spike_template./norm(spike_template,1);
+% spike_template=spike_template./norm(spike_template,1);
 
-% perform a matched filter on the sleep spikes
-filtering = filter(spike_template, 1, zscore(downsample(smooth_spikes, ephys.fs/template_fs)));
+% % perform a matched filter on the sleep spikes
+% filtering = filter(spike_template, 1, zscore(downsample(smooth_spikes, ephys.fs/template_fs)));
+
+% figure();
+% subplot(3,1,1:2);
+% imagesc(filtering);
+% subplot(3,1,3);
+% plot(filtering);
+
+filtered_data = zeros(length(ephys.data(:,1)), length(files));
+
+for i=1:length(files)
+
+	% load data
+	load(files(i).name, 'ephys');
+	temp_data = filtfilt(b,a, double(ephys.data(:,1) - ephys.data(:,2)));
+	sleep_threshold = 3*std(temp_data);
+	% repeat spike detection parameters as above
+	sleep_spikes = spikoclust_spike_detect(temp_data, sleep_threshold, ephys.fs, 'method', 'n', 'window', [.001 .0015]);
+	% getting smooth spike rate (don't quite understand this yet)
+	[nsamples, ntrials] = size(temp_data);
+	spikes_pp_sleep = zeros(nsamples, ntrials);
+	% idxs=round(trim(1)*ephys.fs):round(nsamples-trim(2)*ephys.fs);
+	ind=sub2ind(size(spikes_pp_sleep),sleep_spikes.times,sleep_spikes.trial);
+	spikes_pp_sleep(ind)=1;
+	smooth_spikes=filter(spike_kernel,1,spikes_pp_sleep);
+
+	spike_template=spike_template./norm(spike_template,1);
+	filtering = filter(spike_template, 1, zscore(downsample(smooth_spikes, ephys.fs/template_fs)));
+	filtered_data(:,i) = filtering;
+end
 
 figure();
-subplot(3,1,1:2);
-imagesc(filtering);
-subplot(3,1,3);
-plot(filtering);
+imagesc(filtered_data);
 
-% for i=1:length(files)
-
-% 	% load data
-% 	load(files(i).name, 'ephys');
-% 	filtered_data = filtfilt(b,a, double(ephys.data(:,1) - ephys.data(:,2)));
-% 	sleep_threshold = 3*std(filtered_data);
-% 	% repeat spike detection parameters as above
-% 	sleep_spikes = spikoclust_spike_detect(filtered_data, sleep_threshold, ephys.fs, 'method', 'n', 'window', [.001 .0015]);
-% 	% getting smooth spike rate (don't quite understand this yet)
-% 	[nsamples, ntrials] = size(filtered_data);
-% 	spikes_pp_sleep = zeros(nsamples, ntrials);
-% 	idxs=round(trim(1)*ephys.fs):round(nsamples-trim(2)*ephys.fs);
-% 	ind=sub2ind(size(spikes_pp_sleep),sleep_spikes.times,sleep_spikes.trial);
-% 	spikes_pp_sleep(ind)=1;
-% 	smooth_spikes=filter(spike_kernel,1,spikes_pp_sleep);
-
-% end
+figure();
+subplot(2,1,1);
+plot(filtered_data(:,1));
+hold on
+plot(filtered_data(:,2));
+plot(filtered_data(:,3));
+hold off
+subplot(2,1,2);
+plot(filtered_data(:.4));
+hold on
+plot(filtered_data(:,5));
+plot(filtered_data(:,6));
+hold off
